@@ -73,7 +73,7 @@ export default function Login() {
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="input-field"
+                                className="input-field text-black"
                                 placeholder="••••••••"
                                 required
                                 disabled={loading}
