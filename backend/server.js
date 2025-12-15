@@ -16,10 +16,7 @@ const port = process.env.PORT || 5000;
 // ✅ CORS - frontend origin
 app.use(
     cors({
-        origin: [
-            'https://todo-rufnul.vercel.app/',
-            'http://localhost:3000'
-        ],
+        origin: 'https://todo-rufnul.vercel.app/',
         credentials: true,
     })
 );
