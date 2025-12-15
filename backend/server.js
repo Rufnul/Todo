@@ -13,7 +13,7 @@ const app = express();
 
 const port = process.env.PORT || 5000;
 
-// ✅ CORS - frontend origin
+// CORS - frontend origin
 app.use(
     cors({
         origin: 'https://todo-rufnul.vercel.app',

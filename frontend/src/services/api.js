@@ -1,33 +1,58 @@
-// API configuration
+// =========================
+// API BASE URL (VALIDATED)
+// =========================
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-// Helper function for making API requests
+if (!API_BASE_URL) {
+    throw new Error('NEXT_PUBLIC_API_URL is not defined');
+}
+
+// =========================
+// CORE API REQUEST FUNCTION
+// =========================
 export const apiRequest = async (endpoint, options = {}) => {
-    const token = localStorage.getItem('token');
+    try {
+        const token = localStorage.getItem('token');
 
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-    };
+        const headers = {
+            ...options.headers,
+        };
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        if (!headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers,
+        });
+
+        // Handle auth expiration globally
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            throw new Error('Unauthorized');
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+                errorData.message || `Request failed with status ${response.status}`
+            );
+        }
+
+        return response.json();
+    } catch (error) {
+        throw new Error(error.message || 'Network error or server unavailable');
     }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API request failed with status ${response.status}`);
-    }
-
-    return response.json();
 };
 
-// Auth API functions
+// =========================
+// AUTH APIs
+// =========================
 export const authAPI = {
     register: (name, email, password) =>
         apiRequest('/auth/register', {
@@ -44,7 +69,9 @@ export const authAPI = {
     getCurrentUser: () => apiRequest('/auth/me'),
 };
 
-// Todos API functions
+// =========================
+// TODOS APIs
+// =========================
 export const todosAPI = {
     getAll: () => apiRequest('/todos'),
 
