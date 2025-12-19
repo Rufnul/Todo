@@ -1,24 +1,34 @@
 // =========================
-// API BASE URL (VALIDATED)
+// API CONFIG
 // =========================
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_BASE_URL) {
-    throw new Error('NEXT_PUBLIC_API_URL is not defined');
-}
+const getBaseUrl = () => {
+    const url = process.env.NEXT_PUBLIC_API_URL;
+    if (!url) {
+        throw new Error('NEXT_PUBLIC_API_URL is missing');
+    }
+    return url;
+};
 
 // =========================
 // CORE API REQUEST FUNCTION
 // =========================
 export const apiRequest = async (endpoint, options = {}) => {
+    const API_BASE_URL = getBaseUrl();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
-        const token = localStorage.getItem('token');
+        const token =
+            typeof window !== 'undefined'
+                ? localStorage.getItem('token')
+                : null;
 
         const headers = {
-            ...options.headers,
+            ...(options.headers || {}),
         };
 
-        if (!headers['Content-Type']) {
+        if (options.body && !(options.body instanceof FormData)) {
             headers['Content-Type'] = 'application/json';
         }
 
@@ -29,24 +39,41 @@ export const apiRequest = async (endpoint, options = {}) => {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers,
+            signal: controller.signal,
         });
 
-        // Handle auth expiration globally
         if (response.status === 401) {
-            localStorage.removeItem('token');
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('token');
+            }
             throw new Error('Unauthorized');
         }
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-                errorData.message || `Request failed with status ${response.status}`
-            );
+            const text = await response.text();
+            let message;
+
+            try {
+                message = JSON.parse(text).message;
+            } catch {
+                message = text || `Request failed (${response.status})`;
+            }
+
+            throw new Error(message);
         }
 
-        return response.json();
+        if (response.status === 204) {
+            return null;
+        }
+
+        return await response.json();
     } catch (error) {
-        throw new Error(error.message || 'Network error or server unavailable');
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
 };
 
@@ -66,14 +93,20 @@ export const authAPI = {
             body: JSON.stringify({ email, password }),
         }),
 
-    getCurrentUser: () => apiRequest('/auth/me'),
+    getCurrentUser: () =>
+        apiRequest('/auth/me', {
+            method: 'GET',
+        }),
 };
 
 // =========================
 // TODOS APIs
 // =========================
 export const todosAPI = {
-    getAll: () => apiRequest('/todos'),
+    getAll: () =>
+        apiRequest('/todos', {
+            method: 'GET',
+        }),
 
     create: (todoData) =>
         apiRequest('/todos', {

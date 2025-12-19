@@ -5,32 +5,45 @@ import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import todoRoutes from './routes/todoRoutes.js';
 
-// config dotenv
+// =========================
+// CONFIG
+// =========================
 dotenv.config();
 
-// express app
 const app = express();
-
 const port = process.env.PORT || 5000;
 
-// CORS - frontend origin
+// =========================
+// CORS CONFIG (FIXED)
+// =========================
 app.use(
     cors({
-        origin: 'https://todo-rufnul.vercel.app',
-        credentials: true,
+        origin: [
+            'http://localhost:3000',
+            'https://todo-rufnul.vercel.app',
+        ],
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
     })
 );
 
+// =========================
+// MIDDLEWARES
+// =========================
 app.use(express.json());
 
-// db connect
+// =========================
+// DATABASE
+// =========================
 connectDB();
 
-// routes
+// =========================
+// ROUTES
+// =========================
 app.get('/api/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Server Perfectly Running!',
+        message: 'Server perfectly running',
     });
 });
 
@@ -44,9 +57,12 @@ app.get('/health', (req, res) => {
 
 // Root
 app.get('/', (req, res) => {
-    res.status(200).send(`Server Running on port: ${port}`);
+    res.status(200).send(`Server running on port ${port}`);
 });
 
+// =========================
+// SERVER
+// =========================
 app.listen(port, () => {
-    console.log(`✅ Server started on http://localhost:${port}`);
+    console.log(`✅ Server started on port ${port}`);
 });
